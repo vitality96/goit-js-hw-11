@@ -36,6 +36,7 @@ async function onSearch(e) {
 
   const hits = await pixApiService.fetchArticles();
   const totalHits = hits.data.totalHits;
+  
 
   if (totalHits < 40) {
     Notify.info("Ви дійшли до кінця!");
@@ -47,25 +48,26 @@ async function onSearch(e) {
         Notify.success(`Ми знайшли ${totalHits} зображень!`);
     clearGallery();
     loadMoreBtn.show();
-  loadMoreBtn.enable();
+    loadMoreBtn.enable();
     };
 
-  pixApiService.resetPage();
-  pixApiService.fetchArticles().then(appendArticlesMarkup);
+  // pixApiService.fetchArticles().then(appendArticlesMarkup);
+  // pixApiService.resetPage();
 
   clearGallery();
 };
 
 async function loadBtn() {
     
-  if (pixApiService.page !== 2) {
+  if (pixApiService.page === 1) {
     pixApiService.resetPage();
     };
 
-  pixApiService.fetchArticles().then(appendArticlesMarkup);
+  
     
-  const hit = await pixApiService.fetchArticles();
-  const hitsLength = hit.data.hits.length;
+  // const hit = await pixApiService.fetchArticles();
+  pixApiService.fetchArticles().then(appendArticlesMarkup);
+  // const hitsLength = hit.data.hits.length;
 
 };
 
