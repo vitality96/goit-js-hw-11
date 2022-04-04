@@ -51,8 +51,8 @@ async function onSearch(e) {
     loadMoreBtn.enable();
     };
 
-  // pixApiService.fetchArticles().then(appendArticlesMarkup);
-  // pixApiService.resetPage();
+  pixApiService.fetchArticles().then(appendArticlesMarkup);
+  pixApiService.resetPage();
 
   clearGallery();
 };
