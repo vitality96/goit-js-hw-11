@@ -5,7 +5,7 @@
   "main": "index.js",
   "homepage": "https://vitality96.github.io/goit-js-hw-11",
   "scripts": {
-    "dev": "parcel src/*.html",
+    "dev": "parcel src/*.html --open",
     "build": "parcel build src/*.html --public-url /goit-js-hw-11/"
   },
   "repository": {

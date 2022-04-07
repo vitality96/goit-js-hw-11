@@ -1,110 +1,85 @@
-import './css/main.css';
+import './sass/main.scss';
+'use strict';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
-import PixApiService from './pixabaySearch';
-import articlesTpl from './templates/articlesTpl.hbs'
-import LoadMoreBtn from './loadMoreBtn.js'
-import SimpleLightbox from 'simplelightbox';
-import 'simplelightbox/dist/simple-lightbox.min.css';
+import ImagesAPIService from './js/imageAPIservice';
+import LoadMoreBtn from './js/load-more-btn';
+import Markup from './js/imagemerkup';
 
-
-
-const refs =
-{
-    searchForm: document.querySelector('.search-form'),
-    gallery: document.querySelector('.gallery'),
+const refs = {
+  form: document.querySelector('#search-form'),
+  gallery: document.querySelector('.gallery'),
 };
 
+const imagesAPIService = new ImagesAPIService();
+const loadMoreBtn = new LoadMoreBtn({ selector: '.load-more' });
+const renderMarkup = new Markup({ selector: refs.gallery });
 
-const loadMoreBtn = new LoadMoreBtn({
-    selector: '[data-action="load-more"]',
-    hidden: true,
-});
+refs.form.addEventListener('submit', onFormSubmit);
+loadMoreBtn.button.addEventListener('click', onloadMoreBtnClick);
 
-const pixApiService = new PixApiService();
-
-refs.searchForm.addEventListener('submit', onSearch);
-loadMoreBtn.refs.button.addEventListener('click', loadBtn);
-
-
-async function onSearch(e) {
+// Submit handler
+async function onFormSubmit(e) {
   e.preventDefault();
-  pixApiService.query = e.currentTarget.elements.query.value.trim();
+  renderMarkup.reset();
+  imagesAPIService.query = e.currentTarget.searchQuery.value.trim();
 
-  if (pixApiService.query === '') {
-    return Notify.failure('Введіть що-небудь!');
-    };
+  if (imagesAPIService.query === '') {
+    loadMoreBtn.hideBtn();
+    Notify.info('Ваш запит порожній. Спробуйте ще раз!');
+    return;
+  }
 
-  const hits = await pixApiService.fetchArticles();
-  const totalHits = hits.data.totalHits;
+  imagesAPIService.resetPage();
+
+  try {
+    loadMoreBtn.showBtn();
+    await initFetchImages();
+  } catch (error) {
+    loadMoreBtn.hideBtn();
+    Notify.failure(error.message);
+  }
+
+  refs.form.reset();
+}
+
+// Load-More Button handler
+async function onloadMoreBtnClick() {
+  try {
+    await initFetchImages();
+  } catch {
+    Notify.failure(error.message);
+  }
+  pageScroll();
+  renderMarkup.lightbox.refresh();
+}
+
+// Send request
+async function initFetchImages() {
   
+  try {
+    loadMoreBtn.disable();
+    const images = await imagesAPIService.fetchImages();
+    renderMarkup.items = images;
+    renderMarkup.render();
+  } catch {
+    Notify.failure(error.message);
+  }
+   
 
-  if (totalHits < 40) {
-    Notify.info("Ви дійшли до кінця!");
-    loadMoreBtn.hide();
-  } else if (totalHits < 1) {
-        Notify.failure("Зображення по вказаному запиту відсутні!");
-        return;
-  } else {
-        Notify.success(`Ми знайшли ${totalHits} зображень!`);
-    clearGallery();
-    loadMoreBtn.show();
-    loadMoreBtn.enable();
-    };
+  if (imagesAPIService.endOfHits) {
+    loadMoreBtn.hideBtn();
+    return;
+  }
+  loadMoreBtn.enable();
+}
 
-  pixApiService.fetchArticles().then(appendArticlesMarkup);
-  pixApiService.resetPage();
+// Scroll page
+function pageScroll() {
+  const { height: formHeight } = refs.form.getBoundingClientRect();
+  const { height: cardHeight } = refs.gallery.firstElementChild.getBoundingClientRect();
 
-  clearGallery();
-};
-
-async function loadBtn() {
-    
-  if (pixApiService.page === 1) {
-    pixApiService.resetPage();
-    };
-
-  
-    
-  // const hit = await pixApiService.fetchArticles();
-  pixApiService.fetchArticles().then(appendArticlesMarkup);
-  // const hitsLength = hit.data.hits.length;
-
-};
-
-
-function appendArticlesMarkup(e) {
-  const markup = e.data.hits.map(({largeImageURL, webformatURL, tags, likes, views, comments, downloads}) => {
-    return `<a class="gallery-item" src="${largeImageURL}">
-<div class="gallery">
-    <div class="img-thumb">
-        <img class="photo-card__img" src="${webformatURL}" alt="${tags}" width="301" height="210" />
-    <div class="stats">
-        <p class="stats-item">
-            <b class="info-text">Likes</b>
-            ${likes}
-        </p>
-        <p class="stats-item">
-            <b class="info-text">Views</b>
-            ${views}
-        </p>
-        <p class="stats-item">
-            <b class="info-text">Comments</b>
-            ${comments}
-        </p>
-        <p class="stats-item">
-        <b class="info-text">Downloads</b>
-            ${downloads}
-        </p>
-        </div>
-    </div>
-</div>
-</a>`;
-  }).join("");
-
-  refs.gallery.insertAdjacentHTML('beforeend', markup);
-};
-
-
-function clearGallery() {
-    refs.gallery.innerHTML = "";
-};
+  window.scrollBy({
+    top: cardHeight * 2 - formHeight * 2,
+    behavior: 'smooth',
+  });
+}
